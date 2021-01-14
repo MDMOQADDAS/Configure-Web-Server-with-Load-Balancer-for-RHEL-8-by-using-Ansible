@@ -1,0 +1,3 @@
+dvd_name: "/dvd"
+port_number: 8080
+back_end_server_group_name: '[Back_End_Server_IP]'

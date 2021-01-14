@@ -1,0 +1,61 @@
+- name: "First checking yum is configure or not"
+  shell: "df -h | grep dev/sr0"
+  register: shell
+  ignore_errors: yes
+- name: "Creating the directory to mount the DVD of RHEL-8"
+  file:
+     name: "{{dvd_name}}"
+     state: directory
+  ignore_errors: yes
+  when: shell.rc != 0
+- name: "Mounting the DVD in the folder {{dvd_name}}"
+  mount:
+     path: "{{dvd_name}}"
+     fstype: iso9660
+     src: /dev/sr0
+     state: present
+  ignore_errors: yes
+  when: shell.rc != 0
+- name: "Configuring YUM Repo"
+  yum_repository:
+     name: "apache1"
+     description: "The RedHat DVD Repo"
+     baseurl: "{{dvd_name}}/AppStream"
+     gpgcheck: no
+  ignore_errors: yes
+  when: shell.rc != 0
+- name: "Configuring YUM Repo"
+  yum_repository:
+     name: "apache2"
+     description: "The RedHat DVD Repo"
+     baseurl: "{{dvd_name}}/BaseOS"
+     gpgcheck: no
+  ignore_errors: yes
+  when: shell.rc != 0
+- name: "Now Installing Apache Webserver"
+  package:
+     name: "httpd"
+     state: present
+- name: "Downloding the content of web-page"
+  template:
+     src: "web-content.html.j2"
+     dest: "/var/www/html/index.html"
+  register: x
+  ignore_errors: yes
+- name: "Now start the service"
+  service:
+     name: "httpd"
+     state: restarted
+  ignore_errors: yes
+  when: x.changed == True
+- name: "For Allow the port {{port_number}} to the Web-Server download the package"
+  package:
+     name: "firewalld"
+     state: present
+  ignore_errors: yes
+- name: "Allow the port {{port_number}} to the Web-Server"
+  firewalld:
+     port: "{{port_number}}/tcp"
+     state: enabled
+  ignore_errors: yes
+     

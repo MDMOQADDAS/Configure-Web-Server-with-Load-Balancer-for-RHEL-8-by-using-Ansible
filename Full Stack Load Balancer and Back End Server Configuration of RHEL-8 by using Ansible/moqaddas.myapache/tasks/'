@@ -1,0 +1,8 @@
+- block:
+  - name: "Creating the folder to mount the DVD of RHEL-8"
+    file:
+        name: "{{dvd_name}}"
+        state: directory
+  rescue:
+        debug:
+             msg: "don't worry you directory is created before"

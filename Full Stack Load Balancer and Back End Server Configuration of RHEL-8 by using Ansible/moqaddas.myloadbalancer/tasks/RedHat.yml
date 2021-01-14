@@ -1,0 +1,61 @@
+- name: "First checking yum is configured or not"
+  shell: "df -h | grep dev/sr0"
+  register: shell
+  ignore_errors: yes
+- name: "Creating the file for mount the RHEL-8 DVD"
+  file:
+     name: "{{dvd_name}}"
+     state: directory
+  ignore_errors: yes
+  when: shell.rc != 0
+- name: "Mounting the DVD in the folder {{dvd_name}}"
+  mount:
+     path: "{{dvd_name}}"
+     fstype: iso9660
+     src: /dev/sr0
+     state: present
+  ignore_errors: yes 
+  when: shell.rc != 0
+- name: "Configuring YUM Repo"
+  yum_repository:
+     name: "apache1"
+     description: "The RedHat DVD Repo"
+     baseurl: "{{dvd_name}}/AppStream"
+     gpgcheck: no
+  ignore_errors: yes
+  when: shell.rc != 0
+- name: "Configuring YUM Repo"
+  yum_repository:
+     name: "apache2"
+     description: "The RedHat DVD Repo"
+     baseurl: "{{dvd_name}}/BaseOS"
+     gpgcheck: no
+  ignore_errors: yes
+  when: shell.rc != 0
+- name: "Now Installing Haproxy"
+  package:
+     name: "haproxy"
+     state: present
+- name: "Doing configuration of haproxy"
+  template:
+     src: "haproxy.cfg.j2"
+     dest: "/etc/haproxy/haproxy.cfg"
+  ignore_errors: yes
+  register: x
+- name: "Start the service"
+  service:
+     name: "haproxy"
+     state: restarted
+  ignore_errors: yes
+  when: x.changed == True
+- name: "For Allow the port {{port_number}} to the Web-Server download the package"
+  package:
+     name: "firewalld"
+     state: present
+  ignore_errors: yes
+- name: "Allow the port {{port_number}} to the Web-Server"
+  firewalld:
+     port: "{{port_number}}/tcp"
+     state: enabled
+  ignore_errors: yes
+
